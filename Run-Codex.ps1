@@ -13,15 +13,15 @@ if ((Get-Location).Path -match "(?i)system32") {
 }
 
 <#
-Proactively forces the local API configuration into standard CLI configuration files 
-to bypass hardcoded remote endpoints that ignore standard environment variables.
+Forces the local API configuration into standard CLI configuration files.
+Variable interpolation bypasses Join-Path array evaluation conflicts.
 #>
 $configPaths = @(
-    Join-Path -Path $env:USERPROFILE -ChildPath ".codex\config.json",
-    Join-Path -Path $env:USERPROFILE -ChildPath ".openai\config.json",
-    Join-Path -Path $env:APPDATA -ChildPath "codex\config.json",
-    Join-Path -Path $env:APPDATA -ChildPath "Configstore\codex.json",
-    Join-Path -Path $env:APPDATA -ChildPath "npm\node_modules\@openai\codex\config.json"
+    "$env:USERPROFILE\.codex\config.json",
+    "$env:USERPROFILE\.openai\config.json",
+    "$env:APPDATA\codex\config.json",
+    "$env:APPDATA\Configstore\codex.json",
+    "$env:APPDATA\npm\node_modules\@openai\codex\config.json"
 )
 
 foreach ($path in $configPaths) {
@@ -72,6 +72,11 @@ try {
         $output = Get-Content -Path $tempTranscript -Raw
         Remove-Item -Path $tempTranscript -ErrorAction SilentlyContinue
         
+        <#
+        Regex targets standard API failure responses and rate limit warnings
+        that third-party CLI wrappers frequently output directly to stdout 
+        rather than triggering standard system error streams.
+        #>
         $errorPattern = "(?i)(failed|error|exception|limit|unauthorized|econnrefused|rate limit)"
         $hasErrors = $output -match $errorPattern
         
